@@ -116,7 +116,7 @@ def test_custom_page_streamfield_data_complex():
             (
                 "item",
                 StructValue(None, [("label", "my-label"), ("value", 100)]),
-                ),
+            ),
             ("items", []),
             ("image", None),
         ],
@@ -127,7 +127,7 @@ def test_custom_page_streamfield_data_complex():
 
     assert page.body[3].block_type == "image"
     assert page.body[3].value == image
-    
+
     content = str(page.body)
     assert "block-image" in content
 
