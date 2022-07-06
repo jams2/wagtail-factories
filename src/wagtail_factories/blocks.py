@@ -7,14 +7,11 @@ from wagtail.images.blocks import ImageChooserBlock
 
 from wagtail_factories.builder import (
     StreamBlockStepBuilder,
-    StreamBlockBuildStep,
     StructBlockStepBuilder,
+    ListBlockStepBuilder,
 )
 from wagtail_factories.factories import ImageFactory
-from wagtail_factories.options import (
-    StreamBlockFactoryOptions,
-    StructBlockFactoryOptions,
-)
+from wagtail_factories.options import StreamBlockFactoryOptions
 
 
 __all__ = [
@@ -34,9 +31,7 @@ class StreamBlockFactory(factory.Factory):
 
     @classmethod
     def _generate(cls, strategy, params):
-        # TODO: this check fails for old style StreamFieldFactory definitions, as we're
-        # generating a StreamBlockFactory subclass without an inner Meta class
-        if cls._meta.abstract:
+        if cls._meta.abstract and not hasattr(cls, "_GENERATE_ABSTRACT"):
             raise factory.errors.FactoryError(
                 "Cannot generate instances of abstract factory %(f)s; "
                 "Ensure %(f)s.Meta.model is set and %(f)s.Meta.abstract "
@@ -54,6 +49,7 @@ class StreamBlockFactory(factory.Factory):
         for block_name, value in kwargs.items():
             i, name = block_name.split(".")
             stream_data[int(i)] = (name, value)
+
         if cls._meta.model is None:
             # We got an old style definition, so aren't aware of a StreamBlock class for
             # the StreamField's child blocks.
@@ -87,7 +83,9 @@ class StreamFieldFactory(ParameteredAttribute):
         if isinstance(block_types, dict):
             # Old style definition, dict mapping block name -> block factory
             self.stream_block_factory = type(
-                "_StreamBlockFactory", (StreamBlockFactory,), block_types
+                "_GeneratedStreamBlockFactory",
+                (StreamBlockFactory,),
+                {**block_types, "_GENERATE_ABSTRACT": True},
             )
         elif isinstance(block_types, type) and issubclass(
             block_types, StreamBlockFactory
@@ -104,6 +102,8 @@ class StreamFieldFactory(ParameteredAttribute):
 
 
 class ListBlockFactory(factory.SubFactory):
+    _builder_class = ListBlockStepBuilder
+
     def __call__(self, **kwargs):
         return self.evaluate(None, None, kwargs)
 
@@ -131,7 +131,32 @@ class ListBlockFactory(factory.SubFactory):
         return self.evaluate(None, step, params)
 
 
+class StructBlockFactory(factory.Factory):
+    _builder_class = StructBlockStepBuilder
+
+    class Meta:
+        abstract = True
+        model = blocks.StructBlock
+
+    @classmethod
+    def _construct_struct_value(cls, block_class, params):
+        return blocks.StructValue(
+            block_class(),
+            [(name, value) for name, value in params.items()],
+        )
+
+    @classmethod
+    def _build(cls, block_class, *args, **kwargs):
+        return cls._construct_struct_value(block_class, kwargs)
+
+    @classmethod
+    def _create(cls, block_class, *args, **kwargs):
+        return cls._construct_struct_value(block_class, kwargs)
+
+
 class BlockFactory(factory.Factory):
+    _builder_class = factory.builder.StepBuilder
+
     class Meta:
         abstract = True
 
@@ -159,7 +184,6 @@ class ChooserBlockFactory(BlockFactory):
 
 
 class ImageChooserBlockFactory(ChooserBlockFactory):
-
     image = factory.SubFactory(ImageFactory)
 
     class Meta:
@@ -172,26 +196,3 @@ class ImageChooserBlockFactory(ChooserBlockFactory):
     @classmethod
     def _create(cls, model_class, image):
         return image
-
-
-class StructBlockFactory(factory.Factory):
-    _options_class = StructBlockFactoryOptions
-    _builder_class = StructBlockStepBuilder
-
-    class Meta:
-        model = blocks.StructBlock
-
-    @classmethod
-    def _construct_struct_value(cls, block_class, params):
-        return blocks.StructValue(
-            block_class(),
-            [(name, value) for name, value in params.items()],
-        )
-
-    @classmethod
-    def _build(cls, block_class, *args, **kwargs):
-        return cls._construct_struct_value(block_class, kwargs)
-
-    @classmethod
-    def _create(cls, block_class, *args, **kwargs):
-        return cls._construct_struct_value(block_class, kwargs)
