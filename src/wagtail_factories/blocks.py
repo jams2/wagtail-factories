@@ -1,3 +1,4 @@
+import inspect
 from collections import defaultdict
 from typing import Optional
 
@@ -13,6 +14,7 @@ from wagtail_factories.builder import (
     StructBlockStepBuilder,
 )
 from wagtail_factories.factories import DocumentFactory, ImageFactory, PageFactory
+from wagtail_factories.generator import generate_block_factory, register_block_factory
 from wagtail_factories.options import BlockFactoryOptions, StreamBlockFactoryOptions
 
 __all__ = [
@@ -28,6 +30,7 @@ __all__ = [
 ]
 
 
+@register_block_factory(blocks.StreamBlock)
 class StreamBlockFactory(factory.Factory):
     _options_class = StreamBlockFactoryOptions
     _builder_class = StreamBlockStepBuilder
@@ -86,9 +89,13 @@ class StreamFieldFactory(ParameteredAttribute):
 
     """
 
-    def __init__(self, block_types, default_block_values: Optional[dict] = None):
+    def __init__(self, block_types=None, default_block_values: Optional[dict] = None):
         super().__init__(**(default_block_values or {}))
-        if isinstance(block_types, dict):
+        if block_types is None:
+            # We will generate a stream_block_factory the first time
+            # this factory is evaluated
+            self.stream_block_factory = None
+        elif isinstance(block_types, dict):
             # Old style definition, dict mapping block name -> block factory
             self.stream_block_factory = type(
                 "_GeneratedStreamBlockFactory",
@@ -98,6 +105,8 @@ class StreamFieldFactory(ParameteredAttribute):
         elif isinstance(block_types, type) and issubclass(
             block_types, StreamBlockFactory
         ):
+            # Create an instance of the factory's stream block class
+            # and stash it for later reference
             block_types._meta.block_def = block_types._meta.model()
             self.stream_block_factory = block_types
         else:
@@ -106,10 +115,21 @@ class StreamFieldFactory(ParameteredAttribute):
                 "mapping block names to factories"
             )
 
-    def evaluate(self, instance, step, extra):
+    def evaluate(self, instance, build_step, extra):
+        if self.stream_block_factory is None:
+            parent_class = build_step.builder.factory_meta.get_model_class()
+            grandparent_frame = inspect.stack()[2].frame
+            try:
+                attr_name = grandparent_frame.f_locals["name"]
+            finally:
+                # Keeping a reference to a frame object can cause reference cycles
+                del grandparent_frame
+            stream_block = parent_class._meta.get_field(attr_name).stream_block
+            self.stream_block_factory = generate_block_factory(stream_block)
         return self.stream_block_factory(**extra)
 
 
+@register_block_factory(blocks.list_block.ListBlock)
 class ListBlockFactory(factory.SubFactory):
     _builder_class = ListBlockStepBuilder
 
@@ -137,6 +157,7 @@ class ListBlockFactory(factory.SubFactory):
         return blocks.list_block.ListValue(list_block_def, values)
 
 
+@register_block_factory(blocks.StructBlock)
 class StructBlockFactory(factory.Factory):
     _options_class = BlockFactoryOptions
     _builder_class = StructBlockStepBuilder
@@ -183,11 +204,13 @@ class BlockFactory(factory.Factory):
         return cls._construct_block(block_class, *args, **kwargs)
 
 
+@register_block_factory(blocks.CharBlock)
 class CharBlockFactory(BlockFactory):
     class Meta:
         model = blocks.CharBlock
 
 
+@register_block_factory(blocks.IntegerBlock)
 class IntegerBlockFactory(BlockFactory):
     class Meta:
         model = blocks.IntegerBlock
@@ -197,6 +220,7 @@ class ChooserBlockFactory(BlockFactory):
     pass
 
 
+@register_block_factory(blocks.PageChooserBlock)
 class PageChooserBlockFactory(ChooserBlockFactory):
     page = factory.SubFactory(PageFactory)
 
@@ -212,6 +236,7 @@ class PageChooserBlockFactory(ChooserBlockFactory):
         return page
 
 
+@register_block_factory(ImageChooserBlock)
 class ImageChooserBlockFactory(ChooserBlockFactory):
     image = factory.SubFactory(ImageFactory)
 
@@ -227,6 +252,7 @@ class ImageChooserBlockFactory(ChooserBlockFactory):
         return image
 
 
+@register_block_factory(DocumentChooserBlock)
 class DocumentChooserBlockFactory(ChooserBlockFactory):
     document = factory.SubFactory(DocumentFactory)
 

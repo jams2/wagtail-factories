@@ -46,7 +46,7 @@ def test_override_stream_field_defaults(page_factory_with_stream_field_defaults)
 
 
 @pytest.fixture()
-def page_factory_with_stream_block_meta_defaults():
+def stream_block_factory_with_meta_defaults():
     class BlockFactory(MyStreamBlockFactory):
         struct_block = factory.SubFactory(StructBlockWithLazyAttrFactory)
         char_block = factory.SubFactory(wagtail_factories.CharBlockFactory)
@@ -56,11 +56,19 @@ def page_factory_with_stream_block_meta_defaults():
             default_block_values = {
                 "0__char_block": "meta default text",
                 "1__struct_block__title": "struct block title",
+                "2__char_block": "meta default text",
             }
 
+    return BlockFactory
+
+
+@pytest.fixture()
+def page_factory_with_stream_block_meta_defaults(
+    stream_block_factory_with_meta_defaults,
+):
     class PageFactory(wagtail_factories.PageFactory):
         body = wagtail_factories.StreamFieldFactory(
-            BlockFactory,
+            stream_block_factory_with_meta_defaults,
             default_block_values={
                 "0__char_block": "overridden text",
             },
