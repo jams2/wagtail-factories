@@ -22,6 +22,9 @@ class _Registry:
     def __contains__(self, block_class: type):
         return block_class in self._registry
 
+    def __delitem__(self, block_class: type):
+        del self._registry[block_class]
+
     def get(self, key, default=None):
         return self._registry.get(key, default)
 
@@ -40,8 +43,9 @@ class _Registry:
             if cls in self._registry:
                 return self._registry[cls]
         raise KeyError(
-            f"Couldn't find registered factory for class {cls} or its superclasses"
+            f"Couldn't find registered factory for {cls} or its superclasses"
         )
+
 
 _registry = _Registry()
 register_block_factory = _registry.register
