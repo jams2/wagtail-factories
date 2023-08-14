@@ -55,12 +55,22 @@ def generate_block_factory(block):
 
 @singledispatch
 def _generate_block_factory(block):
+    """
+    Generate a block factory for atomic block types
+    """
     return factory.SubFactory(_registry.search(type(block)))
 
 
 @_generate_block_factory.register(wagtail_blocks.StreamBlock)
 @_generate_block_factory.register(wagtail_blocks.StructBlock)
 def _(block, wrapper=factory.SubFactory):
+    """
+    Generate a block factory for a StreamBlock or StructBlock
+
+    The `wrapper' kwarg facilitates the top level block, which should
+    be returned unwrapped - the public interface passes the identity function.
+    All other StructBlocks and StreamBlocks should be wrapped in factory.SubFactory.
+    """
     block_class = type(block)
     if factory_class := _registry.get(block_class):
         return wrapper(factory_class)
@@ -82,5 +92,8 @@ def _(block, wrapper=factory.SubFactory):
 
 @_generate_block_factory.register(wagtail_blocks.ListBlock)
 def _(block):
+    """
+    Generate a ListBlockFactory
+    """
     subfactory_class = _registry.search(type(block.child_block))
     return _registry.search(type(block))(subfactory_class)

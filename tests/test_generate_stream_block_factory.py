@@ -8,7 +8,15 @@ pytestmark = pytest.mark.django_db
 
 @pytest.fixture()
 def page_factory_factory():
+    """
+    Returns a function that generates a page factory class
+    """
+
     def get_page_factory(stream_field_factory_defaults=None):
+        """
+        Create a page factory class with optional stream field defaults
+        """
+
         class Factory(wagtail_factories.PageFactory):
             body = wagtail_factories.StreamFieldFactory(
                 default_block_values=stream_field_factory_defaults or {}
@@ -23,6 +31,9 @@ def page_factory_factory():
 
 
 def test_generate_stream_block_factory(page_factory_factory):
+    """
+    The generated stream block factory should be a subclass of wagtail_factories.StreamBlockFactory
+    """
     page_factory = page_factory_factory()
     assert page_factory.body.stream_block_factory is None
     page_factory.build()
@@ -32,6 +43,9 @@ def test_generate_stream_block_factory(page_factory_factory):
 
 
 def test_generate_stream_block_factory_with_stream_field_defaults(page_factory_factory):
+    """
+    The generated stream block factory should use the default values from the stream field factory
+    """
     page_factory = page_factory_factory(
         stream_field_factory_defaults={
             "0__char_block": "char block value",
