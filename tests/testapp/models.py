@@ -15,6 +15,7 @@ class MyBlock(blocks.StructBlock):
     item = MyBlockItem()
     items = blocks.ListBlock(MyBlockItem)
     image = ImageChooserBlock(required=False)
+    rich_text = blocks.RichTextBlock(required=False)
 
 
 class SimpleStructBlock(blocks.StructBlock):
@@ -41,6 +42,7 @@ class MyTestPage(Page):
             ("page", blocks.PageChooserBlock()),
             ("image", ImageChooserBlock()),
             ("document", DocumentChooserBlock()),
+            ("rich_text", blocks.RichTextBlock()),
         ],
         use_json_field=True,
     )

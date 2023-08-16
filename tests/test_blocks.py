@@ -2,6 +2,7 @@ from collections import OrderedDict
 
 import pytest
 import wagtail_factories
+from wagtail import rich_text
 from wagtail.blocks import StructValue
 from wagtail.documents.models import Document
 from wagtail.images.models import Image
@@ -250,3 +251,17 @@ def test_chooser_block_strategy(Model, ModelChooserBlockFactory):
     # Object is saved in database when the strategy is create
     ModelChooserBlockFactory.create()
     assert Model.objects.count() == objects_count + 1
+
+
+@pytest.mark.django_db()
+def test_rich_text_block_factory():
+    value = "<p>Foo bar</p>"
+    instance = MyTestPageWithStreamFieldFactory.build(
+        body__0="rich_text", body__1__rich_text=value
+    )
+    # Generated block value will be a RichText instance
+    assert isinstance(instance.body[0].value, rich_text.RichText)
+
+    # Declared value will be as declared (for now)
+    assert isinstance(instance.body[1].value, str)
+    assert instance.body[1].value == value

@@ -27,6 +27,7 @@ __all__ = [
     "PageChooserBlockFactory",
     "ImageChooserBlockFactory",
     "DocumentChooserBlockFactory",
+    "RichTextBlockFactory",
 ]
 
 
@@ -214,6 +215,12 @@ class CharBlockFactory(BlockFactory):
 class IntegerBlockFactory(BlockFactory):
     class Meta:
         model = blocks.IntegerBlock
+
+
+@register_block_factory(blocks.RichTextBlock)
+class RichTextBlockFactory(BlockFactory):
+    class Meta:
+        model = blocks.RichTextBlock
 
 
 class ChooserBlockFactory(BlockFactory):
