@@ -1,4 +1,5 @@
 import inspect
+import warnings
 from collections import defaultdict
 from typing import Optional
 
@@ -90,6 +91,12 @@ class StreamFieldFactory(ParameteredAttribute):
 
     """
 
+    # Important! Attempting to unroll context before evaluation will
+    # cause errors with values that require further evaluation -
+    # e.g. factory.LazyFunction. We do our own unrolling in
+    # StreamBlockStepBuilder
+    UNROLL_CONTEXT_BEFORE_EVALUATION = False
+
     def __init__(self, block_types=None, default_block_values: Optional[dict] = None):
         super().__init__(**(default_block_values or {}))
         if block_types is None:
@@ -98,6 +105,13 @@ class StreamFieldFactory(ParameteredAttribute):
             self.stream_block_factory = None
         elif isinstance(block_types, dict):
             # Old style definition, dict mapping block name -> block factory
+            warnings.warn(
+                (
+                    "Use of old-style dict parameter with StreamFieldFactory is deprecated "
+                    "- this functionality will be removed in a future version."
+                ),
+                DeprecationWarning,
+            )
             self.stream_block_factory = type(
                 "_GeneratedStreamBlockFactory",
                 (StreamBlockFactory,),
