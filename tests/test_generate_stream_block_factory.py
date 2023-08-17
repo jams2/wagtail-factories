@@ -81,20 +81,3 @@ def test_generate_stream_block_factory_with_stream_field_defaults(page_factory_f
     assert instance.body[1].value["item"]["value"] == 42
     assert instance.body[1].value["items"][0]["label"] == "struct block items label"
     assert instance.body[1].value["items"][0]["value"] == 43
-
-
-def test_registry_populated_with_generated_factory(page_factory_factory):
-    """
-    The registry should be populated with the generated factory after the first build
-    """
-    from tests.testapp.models import MyStreamBlock
-
-    registry = wagtail_factories.generator._registry
-    if MyStreamBlock in registry:
-        del registry[MyStreamBlock]
-    assert MyStreamBlock not in registry
-
-    page_factory = page_factory_factory()
-    page_factory.build()
-    assert MyStreamBlock in registry
-    assert registry[MyStreamBlock] is page_factory.body.stream_block_factory

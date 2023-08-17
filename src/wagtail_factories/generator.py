@@ -75,21 +75,16 @@ def _(block, wrapper=factory.SubFactory):
     be returned unwrapped - the public interface passes the identity function.
     All other StructBlocks and StreamBlocks should be wrapped in factory.SubFactory.
     """
-    block_class = type(block)
-    if factory_class := _registry.get(block_class):
-        return wrapper(factory_class)
-
     attrs = {k: _generate_block_factory(v) for k, v in block.child_blocks.items()}
+
+    # ISSUE: this might be StreamBlock if it's anonymous, so provides us with no details of child blocks
+    block_class = type(block)
 
     factory_class = _registry.search(block_class)
 
     attrs["Meta"] = type("Meta", (), {"model": block_class})
 
     block_factory = type(f"{block_class.__name__}Factory", (factory_class,), attrs)
-
-    if block_class not in _registry:
-        # Store it in the registry so we don't have to compute it again
-        _registry[block_class] = block_factory
 
     return wrapper(block_factory)
 

@@ -2,7 +2,7 @@ import factory
 import pytest
 import wagtail_factories
 
-from tests.testapp.models import MyStreamBlock, PageWithStreamBlock
+from tests.testapp.models import MyStreamBlock, PageWithStreamBlock, MyTestPage
 from tests.testapp.stream_block_factories import (
     MyStreamBlockFactory,
     StructBlockWithLazyAttrFactory,
@@ -120,3 +120,25 @@ def test_init_args_have_precedence(page_factory_with_stream_block_meta_defaults)
     )
     assert instance.body[0].value == init_arg_text
     assert instance.body[1].value["title"] == init_arg_text
+
+
+def test_defaults_with_list_block_factory():
+    class Factory(wagtail_factories.PageFactory):
+        body = wagtail_factories.StreamFieldFactory(
+            default_block_values={
+                "0__struct__items__0__label": "label text",
+                "0__struct__items__0__value": 42,
+                "0__struct__items__1__label": "label text",
+                "0__struct__items__1__value": 42,
+            },
+        )
+
+        class Meta:
+            model = MyTestPage
+
+    instance = Factory.build(
+        body__0__struct__items__1__label="overridden text",
+        body__0__struct__items__1__value=factory.LazyFunction(lambda: 43),
+    )
+    breakpoint()
+    assert instance.body[0].value["items"]
